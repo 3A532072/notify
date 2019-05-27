@@ -1,0 +1,140 @@
+<html>
+
+<head>
+  <meta charset=utf-8 />
+  <!-- The core Firebase JS SDK is always required and must be listed first -->
+  <script src="https://www.gstatic.com/firebasejs/6.0.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/6.0.2/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/6.0.2/firebase-messaging.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/6.0.2/firebase-database.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.js"></script>
+
+  <!-- TODO: Add SDKs for Firebase products that you want to use
+         https://firebase.google.com/docs/web/setup#config-web-app -->
+
+  <script>
+
+    // Your web app's Firebase configuration
+    var firebaseConfig = {
+      apiKey: "AIzaSyBiY8oC8GkN3EwIEOB-aaSEVQ_He2V6AIQ",
+      authDomain: "testupdate-5f0ad.firebaseapp.com",
+      databaseURL: "https://testupdate-5f0ad.firebaseio.com",
+      projectId: "testupdate-5f0ad",
+      storageBucket: "testupdate-5f0ad.appspot.com",
+      messagingSenderId: "1080522570958",
+      appId: "1:1080522570958:web:d16c349adcec2bb4"
+    };
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+
+
+  </script>
+  <link rel="manifest" href="/manifest.json">
+</head>
+
+<body>
+  <script>
+    const messaging = firebase.messaging();
+    if ('serviceWorker' in navigator) {
+      console.log('支援sw');
+      navigator.serviceWorker.register("firebase-messaging-sw.js")
+        .then(registration => {
+          messaging.useServiceWorker(registration);
+          messaging.requestPermission()
+            .then(() => {
+              // getToken();
+              console.log('允許通知')
+            })
+            .catch(() => {
+              console.log('unable to get permission to notify');
+            });
+          console.log('成功', registration);
+        }).catch(err => {
+          console.log('fail', err);
+        })
+    } else {
+      console.log('不支援sw');
+    }
+    messaging.setBackgroundMessageHandler(function (payload){
+      console.log('');
+      const notificationTitle = 'test';
+      const notificationOption = {
+        body : 'testbody'
+      }
+      return self.registration.showNotification(notificationTitle,notificationOption);
+    });
+
+
+    messaging.requestPermission()
+      .then(res => {
+        // 若允許通知 -> 向 firebase 拿 token
+        return messaging.getToken();
+      }, err => {
+        // 若拒絕通知
+        console.log(err);
+      })
+      .then(token => {
+        // 成功取得 token
+        console.log(token);
+      });
+
+
+    var key = 'AAAA-5Qp_M4:APA91bHkHMDAS0K47BbglEALEN7LhbZI5RBuzt2QHIH5wKZYmGeC05IwGui19GrTW_09Tpum6ufFs_VH9YnMvDMT8sQ5x384QmJI2SrpQY62YXqtEZ65UhDPGl6j8IIw-UYhbm_P9b59';
+    var to = String(messaging.getToken());
+
+
+
+    var notification = {
+      'title': 'Portugal vs. Denmark',
+      'body': '5 to 1',
+      'icon': 'firebase-logo.png',
+      //'click_action': 'http://localhost:8000'
+    };
+
+
+
+
+    var snapshot;
+    var count = 0;
+    var db = firebase.database();
+    var path = "data/ph";
+
+
+    db.ref(path).limitToLast(5).on('value', function (snapshot) {
+      snapshot.forEach(function (item) {
+        item = item.val().split("=",1);
+        document.writeln(item);
+        if (item >= 5) {
+          count++;
+          if (count >= 3) {
+            fetch('https://fcm.googleapis.com/fcm/send', {
+              'method': 'POST',
+              'headers': {
+                'Authorization': 'key=' + key,
+                'Content-Type': 'application/json'
+              },
+              'body': JSON.stringify({
+                'notification': notification,
+                'to': to
+              })
+            }).then(function (response) {
+              console.log(response);
+            }).catch(function (error) {
+              console.error(error);
+            });
+            count = 0;
+          }
+        }
+      })
+      document.writeln(count);
+
+
+    });
+
+  </script>
+
+
+
+</body>
+
+</html>
